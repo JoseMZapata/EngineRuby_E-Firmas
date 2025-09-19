@@ -24,9 +24,7 @@ def generate_test_cert()
 end
 
 
-def sign_cms()
-  input_path, cert_path, key_path = ARGV[0], ARGV[1], ARGV[2]
-
+def sign_cms(input_path, cert_path, key_path)
   unless File.exist?(input_path)
     puts "ERROR: El archivo de entrada '#{input_path}' no existe."
     exit(1)
@@ -40,25 +38,20 @@ def sign_cms()
     exit(3)
   end
 
-  # Leemos el contenido del archivo a firmar
   data = File.read(input_path, binmode: true)
-
-  # Cargamos el certificado y la llave privada
   cert = OpenSSL::X509::Certificate.new(File.read(cert_path, binmode: true))
   key = OpenSSL::PKey::RSA.new(File.read(key_path, binmode: true))
 
-  # Creamos el objeto CMS
   cms = OpenSSL::CMS.sign(cert, key, data, [], OpenSSL::CMS_DETACHED)
-
-  # Escribimos la firma CMS en un archivo .p7s
+  
   output_path = "#{input_path}.p7s"
-  File.open(output_path, 'wb') { |f| f.write(cms.to_der) }
+  File.open(output_path, 'wb') { |f| f.write(cms.to_pem) }
 
   puts "Archivo firmado creado: #{output_path}"
 end
 
-def verify_cms()
-  input_path, cert_path = ARGV[0], ARGV[1]
+
+def verify_cms(input_path, cert_path)
 
   unless File.exist?(input_path)
     puts "ERROR: El archivo firmado '#{input_path}' no existe."
@@ -109,4 +102,13 @@ def import_pkcs12(p12_path, password, out_prefix)
 
   puts "Importación completa."
 end
+
+
+ARGV[0] = "archivo.txt"
+ARGV[1] = "cert.pem"
+ARGV[2] = "key.key"
+
+
+sign_cms(ARGV[0], ARGV[1], ARGV[2])
+verify_cms(ARGV[0], ARGV[1])
 
