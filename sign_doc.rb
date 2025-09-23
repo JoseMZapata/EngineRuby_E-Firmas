@@ -1,114 +1,33 @@
 require 'openssl'
+require 'base64'
 
-def generate_test_cert()
-  key = OpenSSL::PKey::RSA.new(2048)
-  name = OpenSSL::X509::Name.parse('CN=Test,O=MyOrg,C=US')
-  cert = OpenSSL::X509::Certificate.new
-  cert.version = 2
-  cert.serial = 1
-  cert.subject = name
-  cert.issuer = name
-  cert.public_key = key.public_key
-  cert.not_before = Time.now
-  cert.not_after = cert.not_before + 365 * 24 * 60 * 60 # Válido por un año
-
-  efirma_key_path = 'key.pem'
-  efirma_cert_path = 'cert.pem'
-
-  File.open(efirma_key_path, 'w') { |f| f.write(key.to_pem) }
-  File.open(efirma_cert_path, 'w') { |f| f.write(cert.to_pem) }
-
-  puts "Certificado de prueba generado:"
-  puts " - Llave privada: #{efirma_key_path}"
-  puts " - Certificado: #{efirma_cert_path}"
-end
-
-
-def sign_cms(input_path, cert_path, key_path)
-  unless File.exist?(input_path)
-    puts "ERROR: El archivo de entrada '#{input_path}' no existe."
+def sign_with_efirma(doc_path, private_key_path)
+  # 1. leemos y cargamos la clave privada
+  unless File.exist?(private_key_path)
+    puts "ERROR: La clave privada '#{private_key_path}' no existe."
     exit(1)
   end
-  unless File.exist?(cert_path)
-    puts "ERROR: El certificado '#{cert_path}' no existe."
-    exit(2)
-  end
-  unless File.exist?(key_path)
-    puts "ERROR: La llave privada '#{key_path}' no existe."
-    exit(3)
-  end
+  private_key = OpenSSL::PKey::RSA.new(File.read(private_key_path))
 
-  data = File.read(input_path, binmode: true)
-  cert = OpenSSL::X509::Certificate.new(File.read(cert_path, binmode: true))
-  key = OpenSSL::PKey::RSA.new(File.read(key_path, binmode: true))
-
-  cms = OpenSSL::CMS.sign(cert, key, data, [], OpenSSL::CMS_DETACHED)
-  
-  output_path = "#{input_path}.p7s"
-  File.open(output_path, 'wb') { |f| f.write(cms.to_pem) }
-
-  puts "Archivo firmado creado: #{output_path}"
-end
-
-
-def verify_cms(input_path, cert_path)
-
-  unless File.exist?(input_path)
-    puts "ERROR: El archivo firmado '#{input_path}' no existe."
+  # 2. leemos el documento por firmar
+  unless File.exist?(doc_path)
+    puts "ERROR: El documento '#{doc_path}' no existe."
     exit(1)
   end
-  unless File.exist?(cert_path)
-    puts "ERROR: El certificado '#{cert_path}' no existe."
-    exit(2)
-  end
+  doc_data = File.read(doc_path)
 
-  # Leemos el contenido del archivo firmado
-  cms_data = File.read(input_path, binmode: true)
+  # 3. Hasheamos el documento con sha 256
+  sha256_hash = OpenSSL::Digest::SHA256.digest(doc_data)
 
-  # Cargamos el certificado
-  cert = OpenSSL::X509::Certificate.new(File.read(cert_path, binmode: true))
+  # 4. firmamos el documento hasheado con la clave privada
+  signature = private_key.sign(OpenSSL::Digest::SHA256.new, sha256_hash)
 
-  # Verificamos la firma CMS
-  cms = OpenSSL::CMS.new(cms_data)
-  begin
-    cms.verify([cert], nil, nil, OpenSSL::CMS_DETACHED)
-    puts "La firma es válida."
-  rescue OpenSSL::CMS::VerificationError => e
-    puts "La firma no es válida: #{e.message}"
-    exit(3)
-  end
+  # 5. convertimos a base64
+  base64_signature = Base64.strict_encode64(signature)
+
+  # 6. guardamos en un archivo
+  output_path = "#{doc_path}.base64"
+  File.open(output_path, 'w') { |f| f.write(base64_signature) }
+
+  puts "Archivo firmado y codificado en Base64 creado: #{output_path}"
 end
-
-
-def import_pkcs12(p12_path, password, out_prefix)
-  unless File.exist?(p12_path)
-    puts "ERROR: El archivo .p12 '#{p12_path}' no existe."
-    exit(3)
-  end
-
-  puts "Importando #{p12_path} -> #{out_prefix}-key.pem, #{out_prefix}-cert.pem"
-
-  # Lee el archivo P12 y extrae el par de llave/certificado
-  pkcs12 = OpenSSL::PKCS12.new(File.read(p12_path, binmode: true), password)
-
-  # Escribe la llave privada en un archivo PEM
-  File.open("#{out_prefix}-key.pem", 'w') do |f|
-    f.write(pkcs12.key.to_pem)
-  end
-  # Escribe el certificado en un archivo PEM
-  File.open("#{out_prefix}-cert.pem", 'w') do |f|
-    f.write(pkcs12.certificate.to_pem)
-  end
-
-  puts "Importación completa."
-end
-
-
-ARGV[0] = "archivo.txt"
-ARGV[1] = "cert.pem"
-ARGV[2] = "key.key"
-
-
-sign_cms(ARGV[0], ARGV[1], ARGV[2])
-verify_cms(ARGV[0], ARGV[1])
-
