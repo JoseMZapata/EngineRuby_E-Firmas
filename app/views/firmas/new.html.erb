@@ -1,0 +1,38 @@
+<h1>Nueva firma</h1>
+
+<%= form_for @firma do |f| %>
+  <% if @firma.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@firma.errors.count, "error") %> impidieron que esta firma se realice:</h2>
+      <ul>
+        <% @firma.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <p>
+    <%= f.label :public_key %><br>
+    <%= f.file_field :public_key %> 
+  </p>
+
+  <p>
+    <%= f.label :private_key %><br>
+    <%= f.file_field :private_key%>
+  </p>
+
+  <p>
+    <%= f.label :password %><br>
+    <%= f.password_field :password %>
+  </p>
+
+  <p>
+    <%= f.label :file %><br>
+    <%= f.file_field :file %>
+  </p>
+
+  <p>
+    <%= f.submit "Guardar firma" %>
+  </p>
+<% end %>

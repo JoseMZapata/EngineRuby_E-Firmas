@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  public_key: MyText
+  private_key: MyText
+  password: MyString
+  file: MyString
+
+two:
+  public_key: MyText
+  private_key: MyText
+  password: MyString
+  file: MyString
