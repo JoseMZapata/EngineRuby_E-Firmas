@@ -14,12 +14,12 @@
 
   <p>
     <%= f.label :public_key %><br>
-    <%= f.file_field :public_key %> 
+    <%= f.file_field :public_key, accept: '.cer,.pfx,application/x-x509-ca-cert,application/x-pkcs12' %> 
   </p>
 
   <p>
     <%= f.label :private_key %><br>
-    <%= f.file_field :private_key%>
+    <%= f.file_field :private_key, accept: '.key' %>  
   </p>
 
   <p>
