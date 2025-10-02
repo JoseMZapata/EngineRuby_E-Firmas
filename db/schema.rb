@@ -10,13 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_24_171120) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_01_120000) do
   create_table "firmas", force: :cascade do |t|
-    t.text "public_key"
-    t.text "private_key"
-    t.string "password"
-    t.string "file"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "firma_base64"
+    t.integer "personas_id"
+    t.string "serie_certificado"
+    t.integer "file_id"
   end
 end
