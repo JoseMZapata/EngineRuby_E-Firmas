@@ -1,27 +1,27 @@
 class Users
-  attr_accessor :id, :name, :rfc
+  attr_accessor :id, :name, :curp
 
   USERS = [
-    { id: 1, name: 'ISMAEL HERNANDEZ LANDEROS', rfc: 'HELI860902AQ1' },
-    { id: 2, name: 'JOSE MANUEL ZAPATA RANGEL', rfc: 'ZARM040223C89' },
+    { id: 1, name: 'ISMAEL HERNANDEZ LANDEROS', curp: 'HELI860902HDGRNS01' },
+    { id: 2, name: 'JOSE MANUEL ZAPATA RANGEL', curp: 'ZARM040223HDGPNNA9' },
   ]
 
-  def initialize(id:, name:, rfc:)
+  def initialize(id:, name:, curp:)
     @id = id
     @name = name
-    @rfc = rfc
+    @curp = curp
   end
 
   def to_h
-    { id: @id, name: @name, rfc: @rfc }
+    { id: @id, name: @name, curp: @curp }
   end
 
-  def self.find_by_rfc(rfc)
-    data = USERS.find { |u| u[:rfc] == rfc }
+  def self.find_by_rfc(curp)
+    data = USERS.find { |u| u[:curp] == curp }
     data ? new(**data) : nil
   end
 
-  def self.valid_rfc?(rfc)
-    !!find_by_rfc(rfc)
+  def self.valid_rfc?(curp)
+    !!find_by_curp(curp)
   end
 end

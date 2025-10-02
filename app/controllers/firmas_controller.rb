@@ -7,6 +7,35 @@ class FirmasController < ApplicationController
         @firma = Firma.new(firma_params.except(:file, :public_key, :private_key))
         validate_firma_fields
         if @firma.valid?
+            begin
+                uploaded_document = params[:firma][:file]
+                uploaded_key = params[:firma][:private_key]
+                uploaded_cert = params[:firma][:public_key]
+                if uploaded_document.present? && uploaded_key.present? && uploaded_cert.present?
+                    doc_path = uploaded_document.tempfile.path
+                    key_path = uploaded_key.tempfile.path
+                    cert_path = uploaded_cert.tempfile.path
+                    password = params[:firma][:password]
+                    @firma.firma_base64 = sign_with_efirma(doc_path, key_path, cert_path, password)
+
+                    cert = OpenSSL::X509::Certificate.new(File.read(cert_path))
+                    cert_subject = cert.subject.to_a
+                    rfc_from_cert = cert_subject.find { |name, _, _| name == 'serialNumber' }&.[](1)
+                    user = Users.find_by_rfc(rfc_from_cert)
+                    user1 = Users.find_by_rfc(Users::USERS.find { |u| u[:id] == 1 }[:curp])
+
+                    if user.nil? || user.id != 1
+                        @firma.errors.add(:personas_id, "El RFC del certificado no corresponde al usuario autenticado.")
+                        return render :new, status: :unprocessable_content
+                    end
+                    @firma.personas_id = user.id
+
+                    @firma.serie_certificado = cert.serial.to_s(16).upcase
+                end
+            rescue => e
+                @firma.errors.add(:firma_base64, "No se pudo generar la firma: #{e.message}")
+                return render :new, status: :unprocessable_content
+            end
             @firma.save
             redirect_to @firma, notice: 'Firma y archivos validados.'
         else
@@ -74,34 +103,25 @@ class FirmasController < ApplicationController
     #     end
     # end
 
-    def sign_with_efirma(doc_path, private_key_path, cert_path)
+    def sign_with_efirma(doc_path, private_key_path, cert_path, password = nil)
         unless File.exist?(private_key_path)
-            puts "ERROR: La clave privada '#{private_key_path}' no existe."      #En caso de no encontrar el archivo
-            exit(1)
+            raise "ERROR: La clave privada '#{private_key_path}' no existe."
         end
-        private_key = OpenSSL::PKey::RSA.new(File.read(private_key_path))
+        key_data = File.read(private_key_path)
+        begin
+            private_key = password.present? ? OpenSSL::PKey::RSA.new(key_data, password) : OpenSSL::PKey::RSA.new(key_data)
+        rescue OpenSSL::PKey::RSAError => e
+            raise "No se pudo abrir la clave privada. ¿La contraseña es correcta?"
+        end
 
-        # 2. leemos el documento por firmar
         unless File.exist?(doc_path)
-            puts "ERROR: El documento '#{doc_path}' no existe."    # En caso de no encontrar el documento
-            exit(1)
+            raise "ERROR: El documento '#{doc_path}' no existe."
         end
         doc_data = File.read(doc_path)
 
-        # 3. Hasheamos el documento con sha 256
         sha256_hash = OpenSSL::Digest::SHA256.digest(doc_data)
-
-        # 4. firmamos el documento hasheado con la clave privada
         signature = private_key.sign(OpenSSL::Digest::SHA256.new, sha256_hash)
-
-
-        # 5. convertimos a base64
         base64_signature = Base64.strict_encode64(signature)
-
-        # 6. guardamos en un archivo
-        output_path = "#{doc_path}.base64"
-        File.open(output_path, 'w') { |f| f.write(base64_signature) }
-
-        puts "Archivo firmado y codificado en Base64 creado: #{output_path}"
+        base64_signature
     end
 end
