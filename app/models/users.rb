@@ -22,6 +22,6 @@ class Users
   end
 
   def self.valid_rfc?(curp)
-    !!find_by_curp(curp)
+    !!find_by_rfc(curp)
   end
 end
