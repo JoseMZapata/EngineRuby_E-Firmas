@@ -5,22 +5,23 @@ class FirmasController < ApplicationController
     end
 
     def create
-        @firma = Firma.new(firma_params.except(:file, :public_key, :private_key))
+        @firma = Firma.new(firma_params.except(:public_key, :private_key))
 
         @firma.public_key = params[:firma][:public_key]&.original_filename
         @firma.private_key = params[:firma][:private_key]&.original_filename
-        @firma.file = params[:firma][:file]&.original_filename
 
-        if @firma.valid?
-            begin
-                process_signature_and_assign_fields
-            rescue => e
-                @firma.errors.add(:firma_base64, "No se pudo generar la firma: #{e.message}")
-                return render :new, status: :unprocessable_content
-            end
-            @firma.save
+        begin
+            process_signature_and_assign_fields
+        rescue => e
+            @firma.errors.add(:firma_base64, "No se pudo generar la firma: #{e.message}")
+            return render :new, status: :unprocessable_content
+        end
+
+        puts "DEBUG: user_id=#{@firma.user_id}, file_id=#{@firma.file_id}"
+        if @firma.valid? && @firma.save
             redirect_to @firma, notice: 'Firma y archivos validados.'
         else
+            puts "DEBUG: Firma not valid: #{@firma.errors.full_messages.inspect}"
             render :new, status: :unprocessable_content
         end
     end
@@ -42,15 +43,30 @@ class FirmasController < ApplicationController
 
         cert = OpenSSL::X509::Certificate.new(File.read(cert_path))
         rfc_from_cert = cert.subject.to_a.find { |name, _, _| name == 'serialNumber' }&.[](1)
-        user = Users.find_by_rfc(rfc_from_cert)
+        user = User.find_by_rfc(rfc_from_cert)
 
         if user.nil? || user.id != 1
-            @firma.errors.add(:personas_id, "El RFC del certificado no corresponde al usuario autenticado.")
+            @firma.errors.add(:user_id, "El RFC del certificado no corresponde al usuario autenticado.")
             raise "RFC mismatch"
         end
 
-        @firma.personas_id = user.id
-        
+
+        @firma.user_id = user.id
+
+        acuerdo = Acuerdo.create!(name: "Acuerdo generado para archivo #{uploaded_document.original_filename}", usuario_creador_id: user.id)
+        file_record = FileRecord.new(
+            nombre_archivo: uploaded_document.original_filename,
+            acuerdo_id: acuerdo.id,
+            tipo_archivo: uploaded_document.content_type || 'application/octet-stream',
+            byte_size: uploaded_document.size,
+            llave: SecureRandom.hex(8)
+        )
+        unless file_record.save
+            @firma.errors.add(:file_id, "No se pudo crear el archivo: #{file_record.errors.full_messages.join(', ')}")
+            raise "FileRecord creation failed"
+        end
+        @firma.file_id = file_record.id
+
         hex_serial = cert.serial.to_s(16).upcase
         puts hex_serial
         text_serial = [hex_serial].pack("H*")
@@ -60,7 +76,7 @@ class FirmasController < ApplicationController
 
 
     def firma_params
-        params.require(:firma).permit(:public_key, :private_key, :password, :file)
+        params.require(:firma).permit(:public_key, :private_key, :password)
     end
 
     def sign_with_efirma(doc_path, private_key_path, cert_path, password = nil)

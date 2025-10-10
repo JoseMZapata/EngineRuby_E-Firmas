@@ -7,3 +7,11 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+#
+# Seed initial users for the User model
+User.create!(
+  [
+    { id: 1, name: 'ISMAEL HERNANDEZ LANDEROS', curp: 'HELI860902HDGRNS01' },
+    { id: 2, name: 'JOSE MANUEL ZAPATA RANGEL', curp: 'ZARM040223HDGPNNA9' }
+  ]
+)

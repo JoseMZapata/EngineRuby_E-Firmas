@@ -1,3 +1,4 @@
+
 <h1>Nueva firma</h1>
 
 <%= form_for @firma do |f| %>
@@ -28,8 +29,8 @@
   </p>
 
   <p>
-    <%= f.label :file %><br>
-    <%= f.file_field :file %>
+    <label for="firma_file">Documento a firmar</label><br>
+    <input type="file" name="firma[file]" id="firma_file" />
   </p>
 
   <p>
