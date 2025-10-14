@@ -2,26 +2,33 @@ class FirmasController < ApplicationController
 
     def new
         @firma = Firma.new
+        @acuerdos = Acuerdo.all
+        @selected_acuerdo = Acuerdo.find_by(id: params[:acuerdo_id])
     end
 
     def create
         @firma = Firma.new(firma_params.except(:public_key, :private_key))
-
         @firma.public_key = params[:firma][:public_key]&.original_filename
         @firma.private_key = params[:firma][:private_key]&.original_filename
 
+        acuerdo = Acuerdo.find(params[:firma][:acuerdo_id])
+        file_record = acuerdo.files.first
+        unless file_record
+            @firma.errors.add(:base, "El acuerdo no tiene archivo asociado.")
+            return render :new, status: :unprocessable_content
+        end
+
         begin
-            process_signature_and_assign_fields
+            process_signature_and_assign_fields_firma(file_record, acuerdo)
         rescue => e
             @firma.errors.add(:firma_base64, "No se pudo generar la firma: #{e.message}")
             return render :new, status: :unprocessable_content
         end
 
-        puts "DEBUG: user_id=#{@firma.user_id}, file_id=#{@firma.file_id}"
         if @firma.valid? && @firma.save
-            redirect_to @firma, notice: 'Firma y archivos validados.'
+            AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id)
+            redirect_to @firma, notice: 'Firma y registro de acuerdo-firma creados.'
         else
-            puts "DEBUG: Firma not valid: #{@firma.errors.full_messages.inspect}"
             render :new, status: :unprocessable_content
         end
     end
@@ -29,15 +36,16 @@ class FirmasController < ApplicationController
     private
 
 
-    def process_signature_and_assign_fields
-        uploaded_document = params[:firma][:file]
+    def process_signature_and_assign_fields_firma(file_record, acuerdo)
         uploaded_key = params[:firma][:private_key]
         uploaded_cert = params[:firma][:public_key]
         password = params[:firma][:password]
 
-        doc_path = uploaded_document.tempfile.path
+        doc_path = file_record.nombre_archivo.present? ? file_record_path(file_record) : nil
         key_path = uploaded_key.tempfile.path
         cert_path = uploaded_cert.tempfile.path
+
+        raise "No se encontró el archivo del acuerdo" unless doc_path && File.exist?(doc_path)
 
         @firma.firma_base64 = sign_with_efirma(doc_path, key_path, cert_path, password)
 
@@ -45,33 +53,22 @@ class FirmasController < ApplicationController
         rfc_from_cert = cert.subject.to_a.find { |name, _, _| name == 'serialNumber' }&.[](1)
         user = User.find_by_rfc(rfc_from_cert)
 
-        if user.nil? || user.id != 1
-            @firma.errors.add(:user_id, "El RFC del certificado no corresponde al usuario autenticado.")
+        if user.nil?
+            @firma.errors.add(:user_id, "El RFC del certificado no corresponde a ningún usuario registrado.")
             raise "RFC mismatch"
         end
 
-
         @firma.user_id = user.id
-
-        acuerdo = Acuerdo.create!(name: "Acuerdo generado para archivo #{uploaded_document.original_filename}", usuario_creador_id: user.id)
-        file_record = FileRecord.new(
-            nombre_archivo: uploaded_document.original_filename,
-            acuerdo_id: acuerdo.id,
-            tipo_archivo: uploaded_document.content_type || 'application/octet-stream',
-            byte_size: uploaded_document.size,
-            llave: SecureRandom.hex(8)
-        )
-        unless file_record.save
-            @firma.errors.add(:file_id, "No se pudo crear el archivo: #{file_record.errors.full_messages.join(', ')}")
-            raise "FileRecord creation failed"
-        end
         @firma.file_id = file_record.id
 
         hex_serial = cert.serial.to_s(16).upcase
-        puts hex_serial
         text_serial = [hex_serial].pack("H*")
-        puts text_serial
         @firma.serie_certificado = text_serial
+    end
+
+    def file_record_path(file_record)
+        # Ajusta esta función según cómo y dónde guardes físicamente los archivos
+        Rails.root.join('storage', file_record.nombre_archivo)
     end
 
 

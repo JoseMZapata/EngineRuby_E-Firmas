@@ -1,0 +1,33 @@
+<h1>Nuevo Acuerdo</h1>
+
+<%= form_for @acuerdo, url: acuerdos_path, html: { multipart: true } do |f| %>
+  <% if @acuerdo.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@acuerdo.errors.count, "error") %> impidieron que este acuerdo se guarde:</h2>
+      <ul>
+        <% @acuerdo.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <p>
+    <%= f.label :name, "Nombre del acuerdo" %><br>
+    <%= f.text_field :name %>
+  </p>
+
+  <p>
+    <label for="acuerdo_file">Archivo a firmar</label><br>
+    <input type="file" name="acuerdo[file]" id="acuerdo_file" required />
+  </p>
+
+  <p>
+    <label for="acuerdo_firmar_creador">¿Firmar como creador ahora?</label>
+    <input type="checkbox" name="acuerdo[firmar_creador]" id="acuerdo_firmar_creador" value="1">
+  </p>
+
+  <p>
+    <%= f.submit "Crear acuerdo" %>
+  </p>
+<% end %>

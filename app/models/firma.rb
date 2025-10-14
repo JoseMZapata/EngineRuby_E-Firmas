@@ -4,6 +4,7 @@ class Firma < ApplicationRecord
 	belongs_to :user
 	belongs_to :file_record, class_name: 'FileRecord', foreign_key: 'file_id'
 	has_many :acuerdo_firmas
+	has_many :acuerdos, through: :acuerdo_firmas
 
 	validates :public_key, presence: { message: "debe ser proporcionada." }
 	validates :private_key, presence: { message: "debe ser proporcionada." }

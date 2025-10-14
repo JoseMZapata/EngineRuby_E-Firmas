@@ -1,7 +1,6 @@
-
 <h1>Nueva firma</h1>
 
-<%= form_for @firma do |f| %>
+<%= form_for @firma, html: { multipart: true } do |f| %>
   <% if @firma.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(@firma.errors.count, "error") %> impidieron que esta firma se realice:</h2>
@@ -13,27 +12,30 @@
     </div>
   <% end %>
 
-  <p>
-    <%= f.label :public_key %><br>
-    <%= f.file_field :public_key, accept: '.cer,.pfx,application/x-x509-ca-cert,application/x-pkcs12' %> 
-  </p>
+  <div>
+    <%= f.label :public_key, "Certificado (.cer o .pfx)" %><br>
+    <%= f.file_field :public_key,
+          accept: '.cer,.pfx,application/x-x509-ca-cert,application/x-pkcs12' %>
+  </div>
 
-  <p>
-    <%= f.label :private_key %><br>
-    <%= f.file_field :private_key, accept: '.key' %>  
-  </p>
+  <div>
+    <%= f.label :private_key, "Clave privada (.key)" %><br>
+    <%= f.file_field :private_key, accept: '.key' %>
+  </div>
 
-  <p>
-    <%= f.label :password %><br>
+  <div>
+    <%= f.label :password, "Contraseña de la clave privada" %><br>
     <%= f.password_field :password %>
-  </p>
+  </div>
 
-  <p>
-    <label for="firma_file">Documento a firmar</label><br>
-    <input type="file" name="firma[file]" id="firma_file" />
-  </p>
+  <div>
+    <%= f.label :acuerdo_id, "Acuerdo a firmar" %><br>
+    <%= select_tag 'firma[acuerdo_id]',
+          options_from_collection_for_select(@acuerdos, :id, :name, @selected_acuerdo&.id),
+          prompt: 'Selecciona un acuerdo' %>
+  </div>
 
-  <p>
-    <%= f.submit "Guardar firma" %>
-  </p>
+  <div>
+    <%= f.submit "Guardar firma", class: "btn btn-primary" %>
+  </div>
 <% end %>

@@ -1,0 +1,7 @@
+<h1>Acuerdo creado</h1>
+
+<p><strong>Nombre:</strong> <%= @acuerdo.name %></p>
+<p><strong>Archivo asociado:</strong> <%= @acuerdo.files.first&.nombre_archivo || 'Sin archivo' %></p>
+<p><strong>Creador:</strong> <%= @acuerdo.creador&.name %></p>
+
+<%= link_to 'Firmar este acuerdo', new_firma_path(acuerdo_id: @acuerdo.id) %>
