@@ -2,40 +2,55 @@ class FirmasController < ApplicationController
 
     def new
         @firma = Firma.new
-        @acuerdos = Acuerdo.all
-        @selected_acuerdo = Acuerdo.find_by(id: params[:acuerdo_id])
+        prepare_form_variables(params[:acuerdo_id])
     end
 
     def create
-        @firma = Firma.new(firma_params.except(:public_key, :private_key))
+        acuerdo_id = params.dig(:firma, :acuerdo_id)
+        acuerdo = Acuerdo.find(acuerdo_id)
+        file_record = acuerdo.files.first
+
+        @firma = Firma.new(firma_params)
         @firma.public_key = params[:firma][:public_key]&.original_filename
         @firma.private_key = params[:firma][:private_key]&.original_filename
-
-        acuerdo = Acuerdo.find(params[:firma][:acuerdo_id])
-        file_record = acuerdo.files.first
         unless file_record
+            prepare_form_variables(acuerdo.id)
             @firma.errors.add(:base, "El acuerdo no tiene archivo asociado.")
             return render :new, status: :unprocessable_content
         end
 
-        begin
-            process_signature_and_assign_fields_firma(file_record, acuerdo)
-        rescue => e
-            @firma.errors.add(:firma_base64, "No se pudo generar la firma: #{e.message}")
-            return render :new, status: :unprocessable_content
-        end
+        process_signature_and_assign_fields_firma(file_record, acuerdo)
 
         if @firma.valid? && @firma.save
             AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id)
             redirect_to @firma, notice: 'Firma y registro de acuerdo-firma creados.'
         else
+            prepare_form_variables(acuerdo.id)
             render :new, status: :unprocessable_content
+            Rails.logger.error(@firma.errors.full_messages.join("OCKNAODSFNAOS "))
         end
+
+        rescue ActiveRecord::RecordNotFound
+            prepare_form_variables
+            flash.now[:alert] = "El acuerdo seleccionado no es válido o no fue encontrado."
+            render :new, status: :unprocessable_entity
+        rescue => e
+            prepare_form_variables(params[:firma][:acuerdo_id])
+            flash.now[:alert] = "Error al procesar la firma: #{e.message}"
+            render :new, status: :unprocessable_entity
+  
     end
+
+    
 
     private
 
-
+    def prepare_form_variables(selected_acuerdo_id = nil)
+        @acuerdos = Acuerdo.all
+        if selected_acuerdo_id
+            @selected_acuerdo = Acuerdo.find_by(id: selected_acuerdo_id)
+        end
+    end
     def process_signature_and_assign_fields_firma(file_record, acuerdo)
         uploaded_key = params[:firma][:private_key]
         uploaded_cert = params[:firma][:public_key]
@@ -67,7 +82,6 @@ class FirmasController < ApplicationController
     end
 
     def file_record_path(file_record)
-        # Ajusta esta función según cómo y dónde guardes físicamente los archivos
         Rails.root.join('storage', file_record.nombre_archivo)
     end
 
