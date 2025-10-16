@@ -18,22 +18,23 @@ class AcuerdosController < ApplicationController
 
             archivo = params[:acuerdo][:file]
             raise "No se ha subido ningún archivo." unless archivo
-
-            storage_path = Rails.root.join('storage')
-            FileUtils.mkdir_p(storage_path) 
-            file_location = storage_path.join(archivo.original_filename)
-
-            File.open(file_location, 'wb') do |file|
-            file.write(archivo.read)
-            end
+            file_content = archivo.read
+            file_hash = OpenSSL::Digest::SHA256.hexdigest(file_content)
 
             file_record = FileRecord.create!(
             nombre_archivo: archivo.original_filename,
             acuerdo_id: @acuerdo.id,
             tipo_archivo: archivo.content_type || 'application/octet-stream',
             byte_size: archivo.size,
-            llave: SecureRandom.hex(8)
+            llave: file_hash
             )
+
+            storage_path = Rails.root.join('storage', file_record.id.to_s)
+            FileUtils.mkdir_p(storage_path) 
+            file_location = storage_path.join(archivo.original_filename)
+            File.open(file_location, 'wb') do |file|
+                file.write(archivo.read)
+            end
 
             if params[:acuerdo][:firmar_creador] == '1'
                 redirect_to new_firma_path(acuerdo_id: @acuerdo.id)

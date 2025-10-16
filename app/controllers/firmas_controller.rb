@@ -82,7 +82,7 @@ class FirmasController < ApplicationController
     end
 
     def file_record_path(file_record)
-        Rails.root.join('storage', file_record.nombre_archivo)
+        Rails.root.join('storage', file_record.id.to_s,file_record.nombre_archivo)
     end
 
 
