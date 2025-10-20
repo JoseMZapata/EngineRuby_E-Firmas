@@ -1,9 +1,9 @@
 <h1>Nuevo Acuerdo</h1>
 
-<%= form_for @acuerdo, url: acuerdos_path, html: { multipart: true } do |f| %>
+<%= form_with model: @acuerdo, local: true, multipart: true do |f| %>
   <% if @acuerdo.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@acuerdo.errors.count, "error") %> impidieron que este acuerdo se guarde:</h2>
+    <div id="error_explanation" style="color: red;">
+      <h2><%= pluralize(@acuerdo.errors.count, "error") %> impidieron crear el acuerdo:</h2>
       <ul>
         <% @acuerdo.errors.full_messages.each do |msg| %>
           <li><%= msg %></li>
@@ -12,22 +12,29 @@
     </div>
   <% end %>
 
-  <p>
-    <%= f.label :name, "Nombre del acuerdo" %><br>
-    <%= f.text_field :name %>
-  </p>
+  <div class="field">
+    <%= f.label :name, "Nombre del Acuerdo" %><br>
+    <%= f.text_field :name, required: true %>
+  </div>
 
-  <p>
-    <label for="acuerdo_file">Archivo a firmar</label><br>
-    <input type="file" name="acuerdo[file]" id="acuerdo_file" required />
-  </p>
+  <div class="field">
+    <%= f.label :file, "Archivo (PDF, DOCX, etc.)" %><br>
+    <%= f.file_field :file, required: true %>
+  </div>
 
-  <p>
-    <label for="acuerdo_firmar_creador">¿Firmar como creador ahora?</label>
-    <input type="checkbox" name="acuerdo[firmar_creador]" id="acuerdo_firmar_creador" value="1">
-  </p>
+  <div class="field">
+    <%= f.label :user_ids, "Seleccionar usuarios firmantes" %><br>
+    <%= f.collection_select :user_ids, User.all, :id, :name, {}, multiple: true, size: 5 %>
+    <p style="font-size: 0.9em; color: gray;">(Puedes seleccionar varios manteniendo presionada la tecla Ctrl o Cmd)</p>
+  </div>
 
-  <p>
-    <%= f.submit "Crear acuerdo" %>
-  </p>
+  <div class="field">
+    <%= f.label :firmar_creador, "¿El creador también firmará este acuerdo?" %><br>
+    <%= f.check_box :firmar_creador, {}, '1', '0' %>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Crear Acuerdo", class: "btn btn-primary" %>
+  </div>
 <% end %>
+

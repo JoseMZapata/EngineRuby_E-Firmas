@@ -9,9 +9,20 @@
 #   end
 #
 # Seed initial users for the User model
-User.create!(
-  [
-    { id: 1, name: 'ISMAEL HERNANDEZ LANDEROS', curp: 'HELI860902HDGRNS01' },
-    { id: 2, name: 'JOSE MANUEL ZAPATA RANGEL', curp: 'ZARM040223HDGPNNA9' }
+users_to_seed =[
+    { id: 1, name: 'ISMAEL HERNANDEZ LANDEROS', curp: 'HELI860902HDGRNS01', email: 'josemanuelzapaatarangel@gmail.com' },
+    { id: 2, name: 'JOSE MANUEL ZAPATA RANGEL', curp: 'ZARM040223HDGPNNA9', email: 'jose@example.com' }
   ]
-)
+
+puts "Procesando usuarios..."
+
+users_to_seed.each do |user_attributes|
+  user = User.find_or_initialize_by(curp: user_attributes[:curp])
+  user.update!(
+    name: user_attributes[:name],
+    email: user_attributes[:email]
+  )
+  puts "Usuario '#{user.name}' guardado con el email '#{user.email}'."
+end
+
+puts "¡Proceso de seeds completado!"

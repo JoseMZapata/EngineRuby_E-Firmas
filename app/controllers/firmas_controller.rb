@@ -22,18 +22,23 @@ class FirmasController < ApplicationController
         process_signature_and_assign_fields_firma(file_record, acuerdo)
 
         if @firma.valid? && @firma.save
-            AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id)
-            redirect_to @firma, notice: 'Firma y registro de acuerdo-firma creados.'
-        else
-            prepare_form_variables(acuerdo.id)
-            render :new, status: :unprocessable_content
-            Rails.logger.error(@firma.errors.full_messages.join("OCKNAODSFNAOS "))
-        end
+            acuerdo_firma_pendiente = AcuerdoFirma.find_by(
+                acuerdo_id: acuerdo.id,
+                user_id: @firma.user_id,
+                status: 'pendiente'
+                )
 
-        rescue ActiveRecord::RecordNotFound
-            prepare_form_variables
-            flash.now[:alert] = "El acuerdo seleccionado no es válido o no fue encontrado."
-            render :new, status: :unprocessable_entity
+                if acuerdo_firma_pendiente
+                    acuerdo_firma_pendiente.update!(firma_id: @firma.id, status: 'completada')
+                else
+                    AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id, status: 'completada')
+                end                
+                redirect_to acuerdo, notice: 'Firma creada y asociada al acuerdo exitosamente.'
+            else
+                prepare_form_variables(acuerdo.id)
+                render :new, status: :unprocessable_entity
+            end
+        end
         rescue => e
             prepare_form_variables(params[:firma][:acuerdo_id])
             flash.now[:alert] = "Error al procesar la firma: #{e.message}"
@@ -106,4 +111,3 @@ class FirmasController < ApplicationController
         signature = private_key.sign(OpenSSL::Digest::SHA256.new, sha256_hash)
         Base64.strict_encode64(signature)
     end
-end
