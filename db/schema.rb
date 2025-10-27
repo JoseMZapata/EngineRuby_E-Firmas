@@ -292,9 +292,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_213241) do
     t.index ["curp"], name: "index_users_on_curp", unique: true
   end
 
-  add_foreign_key "acuerdo_firmas", "acuerdos"
-  add_foreign_key "acuerdo_firmas", "firmas"
-  add_foreign_key "acuerdo_firmas", "users"
   add_foreign_key "acuerdos", "users", column: "usuario_creador_id"
   add_foreign_key "files", "acuerdos"
   add_foreign_key "firmas", "files"

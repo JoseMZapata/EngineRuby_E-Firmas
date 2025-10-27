@@ -41,6 +41,9 @@ gem "thruster", require: false
 # gem "image_processing", "~> 1.2"
 gem 'moca', git: 'https://github.com/izmahel/moca.git'
 
+# Gemfile
+gem 'google-api-client', '~> 0.53'
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -67,3 +70,5 @@ end
 
 
 
+
+gem "dotenv-rails", "~> 3.1", :groups => [:development, :test]
