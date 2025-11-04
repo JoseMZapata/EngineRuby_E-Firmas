@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_20_213241) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_31_172251) do
   create_table "acuerdo_firmas", force: :cascade do |t|
     t.integer "acuerdo_id", null: false
     t.integer "user_id", null: false
@@ -29,6 +29,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_213241) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["usuario_creador_id"], name: "index_acuerdos_on_usuario_creador_id"
+  end
+
+  create_table "comentario_acuerdos", force: :cascade do |t|
+    t.integer "acuerdo_id"
+    t.integer "user_id"
+    t.string "motivo"
+    t.text "comentario"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "files", force: :cascade do |t|

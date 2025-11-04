@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #fff3cd; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ffc107; }
+    .content { background-color: #fff; padding: 20px; }
+    .button { background-color: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+    .alert { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #ffc107; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>⚠️ Problema reportado en el acuerdo</h2>
+    </div>
+
+```
+<div class="content">
+  <p>Hola <%= @creador.name %>,</p>
+  
+  <p>Se ha reportado un problema en el acuerdo <strong><%= @acuerdo.name %></strong>.</p>
+  
+  <div class="alert">
+    <p><strong>Motivo del reporte:</strong></p>
+    <p><%= @comentario.motivo %></p>
+    
+    <% if @comentario.comentario.present? %>
+      <p><strong>Comentario adicional:</strong></p>
+      <p><%= @comentario.comentario %></p>
+    <% end %>
+  </div>
+  
+  <p>Puedes revisar el acuerdo y atender el reporte desde el siguiente enlace:</p>
+  <a href="<%= @url_acuerdo %>" class="button">Revisar acuerdo</a>
+  
+  <p>Este aviso fue generado automáticamente cuando un usuario reportó un problema con el acuerdo.</p>
+</div>
+
+<div class="footer">
+  <p>Este es un correo automático del sistema de E-Firmas.<br/>
+  Por favor no respondas a este correo.</p>
+</div>
+```
+
+  </div>
+</body>
+</html>

@@ -23,12 +23,60 @@
             <iframe src="<%= archivo_acuerdo_path(@acuerdo) %>" width="100%" height="600px" style="border: 1px solid #ccc;">
             Tu navegador no soporta la visualización de PDFs. <%= download_link %>.
             </iframe>
-            <% else %>
+        <% else %>
             <p>Este acuerdo no tiene ningún archivo asociado.</p>
         <% end %>
     </div>
 <% else %>
   <p class="text-danger">No hay archivo asociado a este acuerdo.</p>
+<% end %>
+
+<!-- Sección de problemas (para firmantes con firma pendiente) -->
+<% 
+  # TODO: Cambiar por current_user cuando tengas autenticación
+  # Por ahora, mostramos el formulario si hay alguna firma pendiente
+  tiene_firma_pendiente = @acuerdo.acuerdo_firmas.exists?(status: 'pendiente')
+%>
+
+<% if tiene_firma_pendiente %>
+  <div class="card mb-4 p-3 shadow-sm bg-light">
+    <h5 class="mb-3">
+      <a href="#" data-bs-toggle="collapse" data-bs-target="#problemasForm" class="text-danger text-decoration-none">
+        ¿Hay algún problema con este acuerdo?
+      </a>
+    </h5>
+    
+    <div id="problemasForm" class="collapse">
+      <%= form_with model: [@acuerdo, @comentario], url: acuerdo_comentario_acuerdos_path(@acuerdo), local: true do |f| %>
+        <div class="mb-3">
+          <%= f.label :motivo, "Selecciona el motivo:", class: "form-label" %>
+          <%= f.select :motivo, 
+              options_for_select(ComentarioAcuerdo::MOTIVOS), 
+              { prompt: "-- Selecciona una opción --" }, 
+              { class: "form-select", required: true } %>
+        </div>
+        
+        <div class="mb-3">
+          <%= f.label :comentario, "Describe el problema:", class: "form-label" %>
+          <%= f.text_area :comentario, 
+              class: "form-control", 
+              rows: 4, 
+              placeholder: "Por favor describe con más detalle el problema que encontraste...", 
+              required: true %>
+        </div>
+        
+        <div class="mb-3">
+          <%= label_tag :user_id, "Usuario:", class: "form-label" %>
+          <%= select_tag :user_id, 
+              options_from_collection_for_select(@acuerdo.users, :id, :name), 
+              { class: "form-select", required: true } %>
+        </div>
+        
+        <%= f.submit "Enviar comentario", class: "btn btn-danger" %>
+        <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#problemasForm">Cancelar</button>
+      <% end %>
+    </div>
+  </div>
 <% end %>
 
 <div class="card p-3 shadow-sm">
@@ -46,17 +94,17 @@
         <tr>
           <td><%= af.user.name %></td>
           <td>
-            <% if af.firma_id.present? %>
+            <% if af.status == 'completada' %>
               <span class="badge bg-success">Firmado</span>
             <% else %>
               <span class="badge bg-warning text-dark">Pendiente</span>
             <% end %>
           </td>
           <td>
-            <% if af.firma_id.nil? %>
+            <% if af.status == 'pendiente' %>
               <%= link_to "Firmar ahora", new_firma_path(acuerdo_id: @acuerdo.id), class: "btn btn-sm btn-primary" %>
-           <%#  <% else %>
-              <%# <%= link_to "Ver firma", firma_path(af.firma_id), class: "btn btn-sm btn-outline-secondary" %>
+            <% else %>
+              <span class="text-muted">Firmado el <%= af.updated_at.strftime("%d/%m/%Y") %></span>
             <% end %>
           </td>
         </tr>
@@ -65,7 +113,36 @@
   </table>
 </div>
 
-<%# <div class="mt-4">
- %> <%#  <%= link_to "Volver a acuerdos", acuerdos_path, class: "btn btn-secondary" %>
-  <%# <%= link_to "Editar acuerdo", edit_acuerdo_path(@acuerdo), class: "btn btn-outline-info" %>
-<%# </div> %> 
+<!-- Sección de comentarios (solo para el creador) -->
+<% if @comentarios.any? %>
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4 class="mb-3">
+      Problemas reportados
+      <span class="badge bg-danger"><%= @comentarios.count %></span>
+    </h4>
+    
+    <div class="list-group">
+      <% @comentarios.each do |comentario| %>
+        <div class="list-group-item">
+          <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+            <h5 class="mb-1">
+              <%= comentario.motivo %>
+            </h5>
+            <small class="text-muted"><%= time_ago_in_words(comentario.created_at) %> atrás</small>
+          </div>
+          <p class="mb-2"><%= comentario.comentario %></p>
+          <small class="text-muted">
+            Reportado por: <strong><%= comentario.user.name %></strong> (<%= comentario.user.email %>)
+          </small>
+        </div>
+      <% end %>
+    </div>
+    
+
+  </div>
+<% end %>
+
+<div class="mt-4">
+  <%= link_to "← Volver a acuerdos", acuerdos_path, class: "btn btn-secondary" %>
+  <%= link_to "Editar acuerdo", edit_acuerdo_path(@acuerdo), class: "btn btn-outline-warning" %>
+</div>
