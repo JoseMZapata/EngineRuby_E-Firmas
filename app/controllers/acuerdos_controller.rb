@@ -15,15 +15,11 @@ class AcuerdosController < ApplicationController
 
     begin
       ActiveRecord::Base.transaction do
-        # Actualizar nombre si cambió
         if params[:acuerdo][:name].present? && params[:acuerdo][:name] != @acuerdo.name
           @acuerdo.update!(name: params[:acuerdo][:name])
           acuerdo_modificado = true
         end
-
-        # Reemplazar archivo si se subió uno nuevo
         if params[:acuerdo][:file].present?
-          # Eliminar archivo anterior
           old_file = @acuerdo.files.first
           if old_file
             old_file_path = Rails.root.join('storage', old_file.id.to_s)
@@ -31,7 +27,6 @@ class AcuerdosController < ApplicationController
             old_file.destroy
           end
 
-          # Guardar nuevo archivo
           archivo = params[:acuerdo][:file]
           file_content = archivo.read
           file_hash = OpenSSL::Digest::SHA256.hexdigest(file_content)
@@ -55,16 +50,13 @@ class AcuerdosController < ApplicationController
           acuerdo_modificado = true
         end
 
-        # Actualizar firmantes si cambiaron
         if params[:acuerdo][:user_ids].present?
           new_user_ids = params[:acuerdo][:user_ids].reject(&:blank?).map(&:to_i)
           current_user_ids = @acuerdo.acuerdo_firmas.pluck(:user_id)
 
           if new_user_ids.sort != current_user_ids.sort
-            # Eliminar firmantes que ya no están
             @acuerdo.acuerdo_firmas.where.not(user_id: new_user_ids).destroy_all
 
-            # Agregar nuevos firmantes
             new_user_ids.each do |user_id|
               unless @acuerdo.acuerdo_firmas.exists?(user_id: user_id)
                 AcuerdoFirma.create!(
@@ -79,12 +71,8 @@ class AcuerdosController < ApplicationController
           end
         end
 
-        # Si hubo modificaciones, resetear todas las firmas y notificar
         if acuerdo_modificado
-          # Resetear status de todas las firmas a pendiente
           @acuerdo.acuerdo_firmas.update_all(status: 'pendiente', firma_id: nil)
-
-          # Notificar a todos los firmantes
           @acuerdo.acuerdo_firmas.each do |acuerdo_firma|
             user = acuerdo_firma.user
             InvitacionFirmaMailer.notificar_modificacion(user, @acuerdo).deliver_later
@@ -137,7 +125,6 @@ class AcuerdosController < ApplicationController
           file.write(file_content)
         end
 
-        # Guardar usuarios relacionados (firmantes)
         user_ids = params.dig(:acuerdo, :user_ids)&.reject(&:blank?)
         if user_ids.present?
           user_ids.each do |user_id|
@@ -148,13 +135,11 @@ class AcuerdosController < ApplicationController
               status: 'pendiente'
             )
 
-            # Enviar correo de notificación a cada firmante
             user = User.find(user_id)
             InvitacionFirmaMailer.notificar_firmante(user, @acuerdo).deliver_later
           end
         end
 
-        # Redirigir según si el creador también firma
         if params[:acuerdo][:firmar_creador] == '1'
           redirect_to new_firma_path(acuerdo_id: @acuerdo.id) and return
         else

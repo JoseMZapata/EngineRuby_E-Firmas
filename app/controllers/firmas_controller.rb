@@ -13,10 +13,18 @@ class FirmasController < ApplicationController
         @firma = Firma.new(firma_params)
         @firma.public_key = params[:firma][:public_key]&.original_filename
         @firma.private_key = params[:firma][:private_key]&.original_filename
+        
         unless file_record
             prepare_form_variables(acuerdo.id)
             @firma.errors.add(:base, "El acuerdo no tiene archivo asociado.")
             return render :new, status: :unprocessable_content
+        end
+
+        uploaded_cert = params[:firma][:public_key]
+        unless check_certificate_validity(uploaded_cert.tempfile.path)
+            prepare_form_variables(acuerdo.id)
+            @firma.errors.add(:public_key, "El certificado ha expirado o aún no es válido.")
+            return render :new, status: :unprocessable_entity
         end
 
         process_signature_and_assign_fields_firma(file_record, acuerdo)
@@ -26,27 +34,23 @@ class FirmasController < ApplicationController
                 acuerdo_id: acuerdo.id,
                 user_id: @firma.user_id,
                 status: 'pendiente'
-                )
+            )
 
-                if acuerdo_firma_pendiente
-                    acuerdo_firma_pendiente.update!(firma_id: @firma.id, status: 'completada')
-                else
-                    AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id, status: 'completada')
-                end                
-                redirect_to acuerdo, notice: 'Firma creada y asociada al acuerdo exitosamente.'
+            if acuerdo_firma_pendiente
+                acuerdo_firma_pendiente.update!(firma_id: @firma.id, status: 'completada')
             else
-                prepare_form_variables(acuerdo.id)
-                render :new, status: :unprocessable_entity
-            end
-        end
-        rescue => e
-            prepare_form_variables(params[:firma][:acuerdo_id])
-            flash.now[:alert] = "Error al procesar la firma: #{e.message}"
+                AcuerdoFirma.create!(acuerdo_id: acuerdo.id, user_id: @firma.user_id, firma_id: @firma.id, status: 'completada')
+            end                
+            redirect_to acuerdo, notice: 'Firma creada y asociada al acuerdo exitosamente.'
+        else
+            prepare_form_variables(acuerdo.id)
             render :new, status: :unprocessable_entity
-  
+        end
+    rescue => e
+        prepare_form_variables(params[:firma][:acuerdo_id])
+        flash.now[:alert] = "Error al procesar la firma: #{e.message}"
+        render :new, status: :unprocessable_entity
     end
-
-    
 
     private
 
@@ -56,6 +60,7 @@ class FirmasController < ApplicationController
             @selected_acuerdo = Acuerdo.find_by(id: selected_acuerdo_id)
         end
     end
+
     def process_signature_and_assign_fields_firma(file_record, acuerdo)
         uploaded_key = params[:firma][:private_key]
         uploaded_cert = params[:firma][:public_key]
@@ -87,9 +92,8 @@ class FirmasController < ApplicationController
     end
 
     def file_record_path(file_record)
-        Rails.root.join('storage', file_record.id.to_s,file_record.nombre_archivo)
+        Rails.root.join('storage', file_record.id.to_s, file_record.nombre_archivo)
     end
-
 
     def firma_params
         params.require(:firma).permit(:public_key, :private_key, :password)
@@ -111,3 +115,34 @@ class FirmasController < ApplicationController
         signature = private_key.sign(OpenSSL::Digest::SHA256.new, sha256_hash)
         Base64.strict_encode64(signature)
     end
+
+    def check_certificate_validity(cert_path)
+        unless File.exist?(cert_path)
+            Rails.logger.error("ERROR: El certificado '#{cert_path}' no existe.")
+            return false
+        end
+
+        begin
+            cert = OpenSSL::X509::Certificate.new(File.read(cert_path))
+            not_before = cert.not_before
+            not_after = cert.not_after
+            current_time = Time.now
+
+            if current_time >= not_before && current_time <= not_after
+                Rails.logger.info("El certificado es válido y está vigente.")
+                Rails.logger.info("Válido desde: #{not_before}")
+                Rails.logger.info("Válido hasta: #{not_after}")
+                return true
+            else
+                Rails.logger.warn("El certificado ha expirado o aún no es válido.")
+                Rails.logger.warn("Válido desde: #{not_before}")
+                Rails.logger.warn("Válido hasta: #{not_after}")
+                Rails.logger.warn("Fecha actual: #{current_time}")
+                return false
+            end
+        rescue OpenSSL::X509::CertificateError => e
+            Rails.logger.error("Error al leer el certificado: #{e.message}")
+            return false
+        end
+    end
+end

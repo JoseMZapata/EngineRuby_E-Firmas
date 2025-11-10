@@ -31,10 +31,7 @@
   <p class="text-danger">No hay archivo asociado a este acuerdo.</p>
 <% end %>
 
-<!-- Sección de problemas (para firmantes con firma pendiente) -->
 <% 
-  # TODO: Cambiar por current_user cuando tengas autenticación
-  # Por ahora, mostramos el formulario si hay alguna firma pendiente
   tiene_firma_pendiente = @acuerdo.acuerdo_firmas.exists?(status: 'pendiente')
 %>
 
@@ -113,7 +110,6 @@
   </table>
 </div>
 
-<!-- Sección de comentarios (solo para el creador) -->
 <% if @comentarios.any? %>
   <div class="card mt-4 p-3 shadow-sm">
     <h4 class="mb-3">
