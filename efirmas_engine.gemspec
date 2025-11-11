@@ -5,9 +5,9 @@ Gem::Specification.new do |spec|
   spec.version     = EfirmasEngine::VERSION
   spec.authors     = [ "JoseMZapata" ]
   spec.email       = [ "josemanuelzapaatarangel@gmail.com" ]
-  spec.homepage    = "TODO"
-  spec.summary     = "TODO: Summary of EfirmasEngine."
-  spec.description = "TODO: Description of EfirmasEngine."
+  spec.homepage    = "https://github.com/JoseMZapata/EngineRuby_E-Firmas"
+  spec.summary     = "Engine para gestión de e-firmas"
+  spec.description = "Sistema de firmas electrónicas reutilizable para aplicaciones Rails"
   spec.license     = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the "allowed_push_host"
@@ -15,8 +15,8 @@ Gem::Specification.new do |spec|
   spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "TODO: Put your gem's public repo URL here."
-  spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
+  spec.metadata["source_code_uri"] = "https://github.com/JoseMZapata/EngineRuby_E-Firmas"
+  spec.metadata["changelog_uri"] = "https://github.com/JoseMZapata/EngineRuby_E-Firmas/blob/main/efirmas_engine/CHANGELOG.md"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
     Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
