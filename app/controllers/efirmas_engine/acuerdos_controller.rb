@@ -89,7 +89,8 @@ module EfirmasEngine
         end
 
         def index
-            @acuerdos = Acuerdo.all
+            @acuerdo = Acuerdo.new
+            render :new
         end
 
         def edit
