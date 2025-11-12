@@ -8,8 +8,16 @@ module EfirmasEngine
       g.factory_bot dir: 'spec/factories'
     end
 
-    config.to_prepare do
-      ApplicationController.helper(Rails.application.helpers)
+    initializer "efirmas_engine.action_controller" do
+      ActiveSupport.on_load :action_controller do
+        helper EfirmasEngine::Engine.helpers
+      end
+    end
+
+    initializer "efirmas_engine.load_migrations" do
+      unless config.paths['db/migrate'].existent
+        config.paths.add 'db/migrate', with: 'db/migrate'
+      end
     end
   end
 end
