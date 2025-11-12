@@ -65,7 +65,20 @@ Tu aplicación host debe tener:
 1. **Un modelo de usuario** con los campos:
    - `name` (o `nombre`)
    - `email`
-   - Método `find_by_rfc(rfc)` para buscar usuarios por RFC
+   - Método `find_by_rfc(rfc)` para buscar usuarios por RFC (Y otros auxiliares que fueron puestos en el desarrollo del engine)
+      ```ruby
+      def to_h
+        { id: id, name: name, curp: curp }
+      end
+
+      def self.find_by_rfc(curp)
+        find_by(curp: curp)
+      end
+
+      def self.valid_rfc?(curp)
+        exists?(curp: curp)
+      end
+      ```
 
 
 
