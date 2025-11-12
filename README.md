@@ -15,7 +15,7 @@ Sistema de firmas electrónicas reutilizable para aplicaciones Rails.
 
 Agrega esta línea al Gemfile de tu aplicación:
 ```ruby
-gem 'efirmas_engine', git: 'https://github.com/JoseMZapata/EngineRuby_E-Firmas', glob: 'efirmas_engine/*.gemspec'
+gem 'efirmas_engine', git: 'https://github.com/JoseMZapata/EngineRuby_E-Firmas.git', branch: 'efirmas_engine_main'
 ```
 
 Luego ejecuta:
