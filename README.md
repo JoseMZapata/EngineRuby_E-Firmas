@@ -1,28 +1,98 @@
 # EfirmasEngine
-Short description and motivation.
 
-## Usage
-How to use my plugin.
+Sistema de firmas electrónicas reutilizable para aplicaciones Rails.
 
-## Installation
-Add this line to your application's Gemfile:
+## Características
 
+- ✅ Creación de acuerdos con documentos adjuntos
+- ✅ Firma digital con certificados .cer y .key
+- ✅ Sistema de comentarios para reportar problemas
+- ✅ Notificaciones por correo electrónico
+- ✅ Edición de acuerdos con reinicio de firmas
+- ✅ Compatible con cualquier modelo de usuario
+
+## Instalación
+
+Agrega esta línea al Gemfile de tu aplicación:
 ```ruby
-gem "efirmas_engine"
+gem 'efirmas_engine', git: 'https://github.com/JoseMZapata/EngineRuby_E-Firmas', glob: 'efirmas_engine/*.gemspec'
 ```
 
-And then execute:
+Luego ejecuta:
 ```bash
-$ bundle
+bundle install
 ```
 
-Or install it yourself as:
+Instala las migraciones:
 ```bash
-$ gem install efirmas_engine
+rails efirmas_engine:install:migrations
+rails db:migrate
 ```
 
-## Contributing
-Contribution directions go here.
+## Configuración
 
-## License
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+Crea un inicializador en `config/initializers/efirmas_engine.rb`:
+```ruby
+EfirmasEngine.setup do |config|
+  # Configura el nombre de tu modelo de usuario
+  config.user_class = "User"  # o "Moca::User", etc.
+  
+  # Método para obtener el usuario actual
+  config.current_user_method = :current_user
+end
+```
+
+## Montaje
+
+En tu `config/routes.rb`:
+```ruby
+Rails.application.routes.draw do
+  mount EfirmasEngine::Engine, at: "/efirmas"
+  
+  # Tus otras rutas...
+end
+```
+
+Ahora puedes acceder a:
+- `/efirmas` - Listado de acuerdos
+- `/efirmas/acuerdos/new` - Crear nuevo acuerdo
+- `/efirmas/firmas/new` - Firmar acuerdo
+
+## Requisitos
+
+Tu aplicación host debe tener:
+
+1. **Un modelo de usuario** con los campos:
+   - `name` (o `nombre`)
+   - `email`
+   - Método `find_by_rfc(rfc)` para buscar usuarios por RFC
+
+2. **Sistema de autenticación** (Devise, Sorcery, etc.) que proporcione:
+   - Método `current_user`
+   - Método `authenticate_user!` (opcional)
+
+## Uso
+
+### Crear un acuerdo
+```ruby
+acuerdo = EfirmasEngine::Acuerdo.create!(
+  name: "Contrato de trabajo",
+  usuario_creador_id: current_user.id
+)
+```
+
+### Configurar almacenamiento
+
+Los archivos se guardan en `storage/efirmas_engine/`. Asegúrate de tener esta carpeta con permisos de escritura.
+
+## Configuración de correos
+
+Configura tu mailer en `config/environments/production.rb`:
+```ruby
+config.action_mailer.default_url_options = { host: 'tudominio.com' }
+```
+
+
+## Licencia
+
+MIT License. Ver archivo MIT-LICENSE para más detalles.
