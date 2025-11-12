@@ -67,9 +67,7 @@ Tu aplicación host debe tener:
    - `email`
    - Método `find_by_rfc(rfc)` para buscar usuarios por RFC
 
-2. **Sistema de autenticación** (Devise, Sorcery, etc.) que proporcione:
-   - Método `current_user`
-   - Método `authenticate_user!` (opcional)
+
 
 ## Uso
 
